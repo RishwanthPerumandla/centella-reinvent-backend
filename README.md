@@ -89,5 +89,8 @@ This project aims to deliver a robust backend to handle tasks such as molecule d
 
 
 <!-- Pending yet -->
-<!-- ## **Documentation**
-Detailed project information is available in the /docs folder: -->
+## **Documentation**
+Detailed project information is available in the /docs folder:
+
+ [Setup Instructions](docs/setup_instructions.md)
+ 

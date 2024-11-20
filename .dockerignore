@@ -1,0 +1,50 @@
+# Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+.env/
+
+# Logs
+*.log
+*.out
+*.err
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker configuration files
+docker-compose.override.yml
+
+# Development tools and IDE config files
+.vscode/
+.idea/
+*.swp
+
+# Node modules (if applicable)
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Test coverage files
+htmlcov/
+.coverage
+.cache
+coverage/
+*.cover
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+*.swp
+*.swo

@@ -1,0 +1,26 @@
+services:
+  backend:
+    build: .
+    volumes:
+      - .:/app  # Maps the current directory to /app in the container
+    ports:
+      - "8000:8000"  # Expose the backend on localhost:8000
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: reinvent
+    ports:
+      - "5432:5432"  # Expose PostgreSQL on localhost:5432
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"  # Expose Redis on localhost:6379
