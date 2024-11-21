@@ -9,6 +9,25 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 
+from fastapi import Depends, HTTPException, Request
+from jose import jwt, JWTError
+from app.core.config import settings
+
+SECRET_KEY = settings.secret_key
+ALGORITHM = "HS256"
+
+def auth_middleware(request: Request):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization header missing or invalid")
+    
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload  # Return the decoded JWT payload
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
 # Password Hashing
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
