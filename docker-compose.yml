@@ -1,12 +1,16 @@
+version: '3.8'
+
 services:
   backend:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     volumes:
-      - .:/app  # Maps the current directory to /app in the container
+      - .:/app  # Mount the project directory for hot-reloading
     ports:
-      - "8000:8000"  # Expose the backend on localhost:8000
+      - "8000:8000"  # Map localhost:8000 to the container's port 8000
     environment:
-      - PYTHONUNBUFFERED=1
+      - ENV_FILE=.env  # Load environment variables from .env
     depends_on:
       - db
       - redis
@@ -18,9 +22,9 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: reinvent
     ports:
-      - "5432:5432"  # Expose PostgreSQL on localhost:5432
+      - "5432:5432"  # Expose PostgreSQL to localhost
 
   redis:
     image: redis:alpine
     ports:
-      - "6379:6379"  # Expose Redis on localhost:6379
+      - "6379:6379"  # Expose Redis to localhost
