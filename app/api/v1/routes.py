@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from app.api.v1.auth_routes import auth_router
 
 router = APIRouter()
 
@@ -9,3 +10,6 @@ def health_check():
 @router.get("/")
 def index_route():
     return {"message": "index route for /api/v1/"}
+
+# Include authentication routes
+router.include_router(auth_router, prefix="/auth")
