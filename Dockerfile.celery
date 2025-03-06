@@ -13,5 +13,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application files
 COPY src/ /app/src/
 
-# Command to start the Celery worker
+# Ensure .env is copied (important for Celery)
+COPY .env /app/
+
+# Set ENV variables
+ENV PYTHONUNBUFFERED=1
+ENV DATABASE_URL=${DATABASE_URL}
+ENV REDIS_URL=${REDIS_URL}
+
+# Start the Celery worker
 CMD ["celery", "-A", "src.tasks.molecule_task.celery_app", "worker", "--loglevel=info"]

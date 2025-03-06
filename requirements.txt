@@ -1,9 +1,7 @@
 fastapi
 uvicorn
+sqlalchemy
+psycopg2-binary
+pydantic-settings
 celery
 redis
-sqlalchemy
-psycopg2
-boto3
-pydantic
-loguru
