@@ -1,8 +1,8 @@
 from pydantic import BaseSettings
 
 class Settings(BaseSettings):
-    database_url: str = "sqlite:///./test.db"
-    secret_key: str = "your-secret-key"
+    DATABASE_URL: str
+    REDIS_URL: str
 
     class Config:
         env_file = ".env"
