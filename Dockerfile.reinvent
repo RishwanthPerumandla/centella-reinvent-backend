@@ -1,0 +1,28 @@
+# Use Python base image
+FROM python:3.10-slim
+
+# Set working directory inside the container
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    libxrender1 \
+    libsm6 \
+    libxext6 \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone REINVENT only if not already present (First-time setup)
+RUN test -d /app/reinvent || git clone https://github.com/MolecularAI/REINVENT4.git /app/reinvent
+
+# Set REINVENT as working directory
+WORKDIR /app/reinvent
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements-linux-64.lock
+
+# Install REINVENT
+RUN pip install --no-deps .
+
+# Set the entrypoint to allow running REINVENT commands
+# CMD ["reinvent", "-l", "sampling.log", "sampling.toml"]

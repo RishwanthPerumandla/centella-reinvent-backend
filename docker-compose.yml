@@ -24,6 +24,9 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    volumes:
+      - ./src:/app/src  # Sync FastAPI backend code
+      - ./reinvent/results:/app/reinvent/results  # Share results folder
     depends_on:
       db:
         condition: service_healthy
@@ -42,8 +45,22 @@ services:
       dockerfile: Dockerfile.celery
     env_file:
       - .env
+    command: ["celery", "-A", "src.tasks.molecule_task", "worker", "--loglevel=debug","--queues=molecule"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # ✅ Allows Celery to run Docker commands
+      - ./reinvent:/app/reinvent  # ✅ Ensures file writes persist
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
+      
+
+  reinvent:
+    build:
+      context: .
+      dockerfile: Dockerfile.reinvent
+    volumes:
+      - ./reinvent:/app/reinvent  # Share REINVENT folder
+      - ./reinvent/results:/app/reinvent/results  # Share results folder
+    command: ["reinvent", "-l", "sampling.log", "sampling.toml"]

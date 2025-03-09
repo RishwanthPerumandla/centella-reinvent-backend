@@ -19,7 +19,6 @@ This project is a backend API service for molecule design tasks, built with **Fa
 │   │   ├── job_service.py
 │   ├── tasks/
 │   │   ├── molecule_task.py
-│   │   ├── celery_app.py
 │   ├── routes/
 │   │   ├── tasks.py
 │   │   ├── molecule.py
@@ -127,3 +126,12 @@ cd /app/src && ls
 - **@RishwanthPerumandla** - Backend & Celery Integration
 - **@RishwanthPerumandla** - API Routes Development
 
+
+
+
+todo
+- train the gpt with the currentcode base
+- integrate ML model with this
+
+
+COPY configs/toml/sample_config.toml /app/reinvent/sample_config.toml
