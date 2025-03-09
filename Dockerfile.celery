@@ -1,25 +1,24 @@
-# Use the same base image as the API
+# Use Python base image
 FROM python:3.10-slim
 
-# Set the working directory inside the container
+# Set working directory inside the container
 WORKDIR /app
 
-# Copy the requirements file
-COPY requirements.txt .
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    libxrender1 \
+    libsm6 \
+    libxext6 \
+    git \
+    docker.io \  
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies inside the container
+# Install Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application files
+# Copy source code
 COPY src/ /app/src/
 
-# Ensure .env is copied (important for Celery)
-COPY .env /app/
-
-# Set ENV variables
-ENV PYTHONUNBUFFERED=1
-ENV DATABASE_URL=${DATABASE_URL}
-ENV REDIS_URL=${REDIS_URL}
-
-# Start the Celery worker
-CMD ["celery", "-A", "src.tasks.molecule_task.celery_app", "worker", "--loglevel=info","--queues=molecule"]
+# Set the entrypoint for Celery
+CMD ["celery", "-A", "src.tasks.molecule_task", "worker", "--loglevel=debug", "--queues=molecule"]

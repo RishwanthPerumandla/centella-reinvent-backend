@@ -45,16 +45,18 @@ services:
       dockerfile: Dockerfile.celery
     env_file:
       - .env
-    command: ["celery", "-A", "src.tasks.molecule_task", "worker", "--loglevel=debug","--queues=molecule"]
+    command: ["celery", "-A", "src.tasks.molecule_task", "worker", "--loglevel=debug", "--queues=molecule"]
+    privileged: true  # ✅ Allows Celery worker to run Docker commands
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  # ✅ Allows Celery to run Docker commands
-      - ./reinvent:/app/reinvent  # ✅ Ensures file writes persist
+      - /var/run/docker.sock:/var/run/docker.sock  # ✅ Mount Docker socket for access
+      - ./reinvent:/app/reinvent  # ✅ Ensure Celery can write configs/results
+      - ./reinvent/configs:/app/reinvent/configs  # ✅ Ensures REINVENT sees the configs
+
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
-      
 
   reinvent:
     build:
@@ -62,5 +64,4 @@ services:
       dockerfile: Dockerfile.reinvent
     volumes:
       - ./reinvent:/app/reinvent  # Share REINVENT folder
-      - ./reinvent/results:/app/reinvent/results  # Share results folder
-    command: ["reinvent", "-l", "sampling.log", "sampling.toml"]
+    command: sleep infinity  # ✅ Keep container running to inspect files

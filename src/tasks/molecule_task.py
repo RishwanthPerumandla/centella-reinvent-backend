@@ -27,8 +27,8 @@ def run_molecule_design(task_data: dict):
     print(f"[DEBUG] Task ID: {task_id}")
 
     # Define paths
-    reinvent_config_path = f"./reinvent/configs/{task_id}.toml"
-    result_path = f"./reinvent/results/{task_id}.csv"
+    reinvent_config_path = f"reinvent/configs/{task_id}.toml"
+    result_path = f"results/{task_id}.csv"
 
     print(f"[DEBUG] Writing config file to: {reinvent_config_path}")
 
@@ -66,13 +66,12 @@ randomize_smiles = {str(randomize_smiles).lower()}
     # Run REINVENT dynamically as a new container
     try:
         print("[DEBUG] Running REINVENT inside a new Docker container...")
+  
+
+# Run REINVENT inside the running container
         result = subprocess.run(
             [
-                "docker", "run", "--rm",
-                "--name", f"reinvent_task_{task_id}",
-                "-v", os.path.abspath("./reinvent/configs") + ":/app/reinvent/configs",
-                "-v", os.path.abspath("./reinvent/results") + ":/app/reinvent/results",
-                "centella-reinvent-backend-reinvent",  # Container image name
+                "docker", "exec", "centella-reinvent-backend-reinvent-1",
                 "reinvent", "-l", f"/app/reinvent/logs/{task_id}.log", f"/app/reinvent/configs/{task_id}.toml"
             ],
             capture_output=True,
