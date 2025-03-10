@@ -1,0 +1,53 @@
+# General Python ignores
+__pycache__/
+*.py[cod]
+*.swp
+.DS_Store
+.env
+*.log
+
+# Virtual Environments
+venv/
+.env/
+
+# FastAPI & Celery related files
+instance/
+celerybeat-schedule
+*.sqlite3
+
+# REINVENT related files
+reinvent/configs/
+reinvent/logs/
+reinvent/results/
+
+# Docker related files
+*.dockerignore
+docker-compose.override.yml
+
+# PostgreSQL data (if using local volumes)
+pgdata/
+
+# VS Code settings (optional, remove if not needed)
+.vscode/
+
+# __pycache__ and compiled files
+*.pyc
+*.pyo
+
+# Jupyter Notebooks (optional, remove if needed)
+.ipynb_checkpoints/
+
+# Ignore MacOS system files
+*.DS_Store
+
+# Ignore large model files (if applicable)
+*.h5
+*.pt
+*.onnx
+
+# Logs & temp files
+logs/
+*.log
+*.out
+*.pid
+nohup.out

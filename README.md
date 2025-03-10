@@ -1,137 +1,196 @@
-# Centella Reinvent Backend - FastAPI & Celery
+# **Centella Reinvent Backend – Setup & Deployment Guide**
 
-## Overview
-This project is a backend API service for molecule design tasks, built with **FastAPI**, **Celery**, **PostgreSQL**, and **Redis**. It supports:
-
-- **Task submission and tracking**
-- **Database storage using PostgreSQL**
-- **Asynchronous task processing using Celery & Redis**
-
-## Project Structure
-```
-/app
-│── src/
-│   ├── db/
-│   │   ├── models.py
-│   │   ├── connection.py
-│   │   ├── init_db.py
-│   ├── services/
-│   │   ├── job_service.py
-│   ├── tasks/
-│   │   ├── molecule_task.py
-│   ├── routes/
-│   │   ├── tasks.py
-│   │   ├── molecule.py
-│   ├── config/
-│   │   ├── settings.py
-│   ├── main.py
-│── Dockerfile
-│── Dockerfile.celery
-│── docker-compose.yml
-│── requirements.txt
-│── .env
-```
-
-## Prerequisites
-Ensure you have the following installed:
-- **Docker & Docker Compose**
-- **Python 3.10+** (for local development)
-
-## Installation & Setup
-
-### 1️⃣ Clone the Repository
-```bash
-git clone https://github.com/your-repo/centella-reinvent-backend.git
-cd centella-reinvent-backend
-```
-
-### 2️⃣ Setup Environment Variables
-Create a `.env` file in the root directory and add:
-```env
-DATABASE_URL=postgresql://user:password@db/reinventdb
-REDIS_URL=redis://redis:6379/0
-```
-
-### 3️⃣ Start Docker Containers
-```bash
-docker-compose up --build
-```
-
-This will start the following services:
-- **Backend (FastAPI) →** `http://localhost:8000`
-- **Database (PostgreSQL) →** `db` service
-- **Task Queue (Celery) →** `celery_worker`
-- **Message Broker (Redis) →** `redis`
-
-### 4️⃣ Initialize Database
-Run database migrations inside the running container:
-```bash
-docker exec -it backend-1 python /app/src/db/init_db.py
-```
-This will create the required tables inside **PostgreSQL**.
-
-## API Endpoints
-
-### **Task Management**
-| Method | Endpoint | Description |
-|--------|----------|--------------|
-| `POST` | `/api/v1/tasks/submit` | Submits a new molecule design task |
-| `GET` | `/api/v1/tasks/{task_id}` | Fetches the status of a submitted task |
-
-### **Example Usage**
-
-#### ✅ Submit a New Task
-```bash
-curl -X POST "http://localhost:8000/api/v1/tasks/submit"
-```
-
-#### ✅ Check Task Status
-```bash
-curl -X GET "http://localhost:8000/api/v1/tasks/task_id_here"
-```
-
-## Celery Worker Logs
-To monitor Celery workers processing tasks, run:
-```bash
-docker logs -f celery_worker-1
-```
-
-## Troubleshooting
-
-### ❌ Database Connection Error
-If you see an error like:
-```
-psycopg2.OperationalError: connection to server at "db" failed
-```
-Make sure PostgreSQL is running by checking logs:
-```bash
-docker-compose logs db
-```
-
-### ❌ Module Not Found (e.g., `ModuleNotFoundError: No module named 'src'`)
-Ensure the correct working directory inside the container:
-```bash
-docker exec -it backend-1 /bin/sh
-cd /app/src && ls
-```
-
-## Next Steps
-- **Implement additional API routes for molecule processing**
-- **Enhance error handling and logging**
-- **Write unit tests using Pytest**
+## **Project Overview**
+This project integrates **FastAPI**, **Celery**, and **Docker** to run **REINVENT** as a molecular design pipeline. The setup allows users to submit molecule design tasks, process them asynchronously via Celery workers, and execute them inside Docker containers.
 
 ---
 
-**Contributors:**
-- **@RishwanthPerumandla** - Backend & Celery Integration
-- **@RishwanthPerumandla** - API Routes Development
+## **1. Setup & Installation**
+### **1.1 Clone the Backend Repository**
+```sh
+git clone <repo-url> //edit
+cd <backend-repo> //edit
+```
+
+### **1.2 Clone the REINVENT Repository**
+Since REINVENT is large (~1.7GB), **do this manually** inside the backend repo:
+```sh
+git clone https://github.com/MolecularAI/REINVENT4.git reinvent
+```
+Ensure that `reinvent` is **not cloned again** during Docker builds.
+
+### **1.3 Add Environment Variables**
+Create a `.env` file in the root directory:
+```sh
+# PostgreSQL Database
+POSTGRES_USER=user
+POSTGRES_PASSWORD=password
+POSTGRES_DB=reinventdb
+
+# Redis Configuration
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# Celery Configuration
+CELERY_BROKER=redis://redis:6379/0
+CELERY_BACKEND=redis://redis:6379/0
+```
+
+---
+
+## **2. Running the Application**
+### **2.1 Start Docker Services**
+```sh
+docker-compose up --build -d
+```
+This will:
+- Start **PostgreSQL** (`db`)
+- Start **Redis** (`redis`)
+- Start **FastAPI Backend** (`backend`)
+- Start **Celery Worker** (`celery_worker`)
+- Start **REINVENT** (`reinvent`)
+
+### **2.2 Verify Running Containers**
+Check running containers:
+```sh
+docker ps
+```
+If `reinvent` isn't running, it will start dynamically when a request is made.
+
+---
+
+## **3. Project Structure**
+```
+/backend-repo
+│── reinvent/  # REINVENT codebase (cloned)
+│── reinvent/tasks/  # Each molecule task has its own folder
+│── reinvent/configs/  # Generated TOML config files
+│── reinvent/results/  # Output JSONs
+│── reinvent/logs/  # Logs from each execution
+│── src/
+│   ├── api/  # FastAPI routes
+│   ├── tasks/  # Celery task management
+│   ├── db/  # Database connection
+│── docker-compose.yml  # Docker setup
+│── Dockerfile  # Backend FastAPI Dockerfile
+│── Dockerfile.reinvent  # REINVENT Dockerfile
+│── .env  # Environment variables
+```
+
+---
+
+## **4. API Endpoints**
+### **4.1 Submit a Molecule Design Task**
+```http
+POST /api/v1/molecule/design
+```
+#### **Request Body**
+```json
+{
+    "device": "cpu",
+    "model_file": "priors/reinvent.prior",
+    "num_smiles": 157,
+    "unique_molecules": true,
+    "randomize_smiles": true
+}
+```
+#### **Response**
+```json
+{
+    "task_id": "task_xxxxxxx",
+    "celery_task_id": "celery-xxxxx",
+    "status": "queued"
+}
+```
+
+---
+
+### **4.2 Get Molecule Design Results**
+```http
+GET /api/v1/molecule/result/{task_id}
+```
+#### **Response (Success)**
+```json
+{
+    "task_id": "task_xxxxx",
+    "status": "completed",
+    "result": "<CSV or JSON output>"
+}
+```
+#### **Response (Failure)**
+```json
+{
+    "task_id": "task_xxxxx",
+    "status": "failed",
+    "error": "File not found"
+}
+```
+
+---
+
+## **5. Running Celery Manually**
+To monitor **Celery tasks**, open a terminal inside the backend container:
+```sh
+docker exec -it <backend-container-id> sh
+```
+Run:
+```sh
+celery -A src.tasks.molecule_task worker --loglevel=debug
+```
+
+Check active tasks:
+```sh
+celery -A src.tasks.molecule_task inspect active
+```
+
+---
+
+## **6. Debugging & Common Issues**
+### **6.1 No Such Container: reinvent**
+- **Solution:** Ensure the REINVENT container name is **dynamically fetched**.
+```sh
+docker ps --filter "name=reinvent"
+```
+If no output, run:
+```sh
+docker-compose up --build -d
+```
+
+### **6.2 Celery Not Processing Tasks**
+Check Redis is running:
+```sh
+redis-cli ping
+```
+If `PONG` is not received, restart Redis:
+```sh
+docker-compose restart redis
+```
+
+Check Celery queues:
+```sh
+celery -A src.tasks.molecule_task inspect active_queues
+```
+
+---
+
+## **7. Automating Deployment**
+To make updates:
+```sh
+git pull origin main
+docker-compose down
+docker-compose up --build -d
+```
+
+---
+
+## **Final Notes**
+- **Molecule design tasks run inside Docker containers dynamically.**
+- **All logs, configs, and results are stored inside `reinvent/tasks/{task_id}/` for clarity.**
+- **Ensure Celery workers and Redis are active before submitting requests.**
 
 
+## **📌 Todo**
+- ✅ Improve API logging for better debugging.
+- ✅ Add a front-end dashboard for tracking task progress.
+- ✅ Introduce persistent storage for task results.
 
-
-todo
-- train the gpt with the currentcode base
-- integrate ML model with this
-
-
-COPY configs/toml/sample_config.toml /app/reinvent/sample_config.toml
