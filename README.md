@@ -1,96 +1,137 @@
-# Centella Reinvent Backend
-
-Centella Reinvent Backend provides the infrastructure to support **REINVENT 4**, a molecular design tool for de novo design, scaffold hopping, R-group replacement, linker design, molecule optimization, and more. The backend is designed for high scalability, fault tolerance, and efficient interaction with REINVENT's Reinforcement Learning (RL) and Transfer Learning (TL) models.
-
----
+# Centella Reinvent Backend - FastAPI & Celery
 
 ## Overview
+This project is a backend API service for molecule design tasks, built with **FastAPI**, **Celery**, **PostgreSQL**, and **Redis**. It supports:
 
-This project aims to deliver a robust backend to handle tasks such as molecule design, job management, and file storage while ensuring scalability and fault tolerance.
+- **Task submission and tracking**
+- **Database storage using PostgreSQL**
+- **Asynchronous task processing using Celery & Redis**
+
+## Project Structure
+```
+/app
+│── src/
+│   ├── db/
+│   │   ├── models.py
+│   │   ├── connection.py
+│   │   ├── init_db.py
+│   ├── services/
+│   │   ├── job_service.py
+│   ├── tasks/
+│   │   ├── molecule_task.py
+│   ├── routes/
+│   │   ├── tasks.py
+│   │   ├── molecule.py
+│   ├── config/
+│   │   ├── settings.py
+│   ├── main.py
+│── Dockerfile
+│── Dockerfile.celery
+│── docker-compose.yml
+│── requirements.txt
+│── .env
+```
+
+## Prerequisites
+Ensure you have the following installed:
+- **Docker & Docker Compose**
+- **Python 3.10+** (for local development)
+
+## Installation & Setup
+
+### 1️⃣ Clone the Repository
+```bash
+git clone https://github.com/your-repo/centella-reinvent-backend.git
+cd centella-reinvent-backend
+```
+
+### 2️⃣ Setup Environment Variables
+Create a `.env` file in the root directory and add:
+```env
+DATABASE_URL=postgresql://user:password@db/reinventdb
+REDIS_URL=redis://redis:6379/0
+```
+
+### 3️⃣ Start Docker Containers
+```bash
+docker-compose up --build
+```
+
+This will start the following services:
+- **Backend (FastAPI) →** `http://localhost:8000`
+- **Database (PostgreSQL) →** `db` service
+- **Task Queue (Celery) →** `celery_worker`
+- **Message Broker (Redis) →** `redis`
+
+### 4️⃣ Initialize Database
+Run database migrations inside the running container:
+```bash
+docker exec -it backend-1 python /app/src/db/init_db.py
+```
+This will create the required tables inside **PostgreSQL**.
+
+## API Endpoints
+
+### **Task Management**
+| Method | Endpoint | Description |
+|--------|----------|--------------|
+| `POST` | `/api/v1/tasks/submit` | Submits a new molecule design task |
+| `GET` | `/api/v1/tasks/{task_id}` | Fetches the status of a submitted task |
+
+### **Example Usage**
+
+#### ✅ Submit a New Task
+```bash
+curl -X POST "http://localhost:8000/api/v1/tasks/submit"
+```
+
+#### ✅ Check Task Status
+```bash
+curl -X GET "http://localhost:8000/api/v1/tasks/task_id_here"
+```
+
+## Celery Worker Logs
+To monitor Celery workers processing tasks, run:
+```bash
+docker logs -f celery_worker-1
+```
+
+## Troubleshooting
+
+### ❌ Database Connection Error
+If you see an error like:
+```
+psycopg2.OperationalError: connection to server at "db" failed
+```
+Make sure PostgreSQL is running by checking logs:
+```bash
+docker-compose logs db
+```
+
+### ❌ Module Not Found (e.g., `ModuleNotFoundError: No module named 'src'`)
+Ensure the correct working directory inside the container:
+```bash
+docker exec -it backend-1 /bin/sh
+cd /app/src && ls
+```
+
+## Next Steps
+- **Implement additional API routes for molecule processing**
+- **Enhance error handling and logging**
+- **Write unit tests using Pytest**
 
 ---
 
-## Project Features
-
-### Core Features
-- **User Authentication**:
-  - Secure login/signup functionality.
-  - Token-based authentication (e.g., JWT or OAuth2).
-- **Molecule Design Tasks**:
-  - APIs to interact with REINVENT functionalities like de novo design and scaffold hopping.
-  - Handle model inputs (e.g., chemical structures, score functions).
-- **Model Handling**:
-  - Load and manage pre-trained models for Transfer Learning (TL).
-  - Enable saving/loading of user-specific models or results.
-- **Job Management**:
-  - Asynchronous handling for lengthy molecular design tasks using Celery.
-- **Result Management**:
-  - Save generated molecules and metadata to a database.
-  - Allow users to retrieve past results.
-- **File Management**:
-  - Support for uploading and downloading datasets and molecule files.
-
----
-
-## Tech Stack
-
-| **Component**          | **Technology**         | **Purpose**                                |
-|-------------------------|------------------------|--------------------------------------------|
-| Backend Framework       | FastAPI               | API development and request handling.      |
-| Asynchronous Tasks      | Celery + Redis        | Job queue for handling long-running tasks. |
-| Database                | PostgreSQL            | Store user data, molecules, and results.   |
-| File Storage            | AWS S3 / Local FS     | Store datasets and generated molecules.    |
-| Authentication          | OAuth2 / JWT          | Secure access to the APIs.                 |
-| Model Serving           | Python (custom handler) | Load and run REINVENT models.            |
-| Containerization        | Docker                | Consistent environments and deployment.    |
-
----
-
-## Project Milestones
-
-### Phase 1 - Project Initialization
-1. Set up FastAPI project structure.
-2. Initialize Docker containers for:
-   - Backend application.
-   - Model environment.
-3. Set up PostgreSQL database for user and result management.
-4. Integrate Redis for job queuing.
-
-### Phase 2 - Core Features
-1. Implement user authentication (login/signup, JWT).
-2. Develop APIs to load and interact with REINVENT models:
-   - Model selection.
-   - Score function input and validation.
-3. Add file upload/download functionality.
-
-### Phase 3 - Advanced Features
-1. Enable Transfer Learning:
-   - APIs for uploading datasets.
-   - APIs to train models with user data.
-2. Develop job management APIs:
-   - Submit tasks.
-   - Poll for task status.
-   - Retrieve task results.
-3. Optimize database for scalability and queries.
-
-### Phase 4 - Deployment and Scaling
-1. Deploy to Azure using Docker containers.
-2. Enable logging and monitoring with Prometheus and Grafana.
-3. Implement auto-scaling for model-heavy workloads.
-
----
-
-<!-- ## Installation
-
-### Prerequisites
-- Python 3.9 or higher.
-- Docker and Docker Compose.
-- PostgreSQL and Redis installed locally or accessible through cloud services. -->
+**Contributors:**
+- **@RishwanthPerumandla** - Backend & Celery Integration
+- **@RishwanthPerumandla** - API Routes Development
 
 
-<!-- Pending yet -->
-## **Documentation**
-Detailed project information is available in the /docs folder:
 
- [Setup Instructions](docs/setup_instructions.md)
- 
+
+todo
+- train the gpt with the currentcode base
+- integrate ML model with this
+
+
+COPY configs/toml/sample_config.toml /app/reinvent/sample_config.toml

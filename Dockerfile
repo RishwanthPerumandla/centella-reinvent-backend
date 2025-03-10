@@ -1,17 +1,23 @@
-# Use the official Python image
-FROM python:3.9-slim
+# Use Python base image
+FROM python:3.10-slim
 
-# Set the working directory inside the container
+# Set working directory
 WORKDIR /app
 
-# Copy the requirements file to the container
+# Copy dependency files
 COPY requirements.txt .
-
-# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire project to the container
-COPY . .
+# Copy application code
+COPY src/ /app/src/
 
-# Set the default command to run the FastAPI application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Expose port
+EXPOSE 8000
+
+# Ensure environment variables are read inside the container
+ENV DATABASE_URL=${DATABASE_URL}
+ENV PYTHONPATH=/app
+
+# Run FastAPI
+# Run database initialization script before starting the app
+CMD ["sh", "-c", "python src/db/init_db.py && uvicorn src.main:app --host 0.0.0.0 --port 8000"]
