@@ -33,7 +33,8 @@ def run_molecule_design(task_data: dict):
     # Define paths inside the task-specific folder
     reinvent_config_path = f"{task_folder}/config.toml"
     log_path = f"{task_folder}/reinvent.log"
-    result_path = f"/app/reinvent/results/{task_id}.csv"
+    json_out_path = f"{task_folder}/sampling.json"  # ✅ Ensure _sampling.json goes in tasks folder
+    result_path = f"{task_folder}/results.csv"  # ✅ Ensure results CSV stays in task folder
 
     print(f"[DEBUG] Writing config file to: {reinvent_config_path}")
 
@@ -41,11 +42,11 @@ def run_molecule_design(task_data: dict):
     toml_content = f"""
 run_type = "sampling"
 device = "{device}"
-json_out_config = "{result_path}"
+json_out_config = "{json_out_path}"  # ✅ Ensures _sampling.json is inside task folder
 
 [parameters]
 model_file = "{model_file}"
-output_file = "{result_path}"
+output_file = "{result_path}"  # ✅ Ensures results.csv is saved in the task folder
 
 num_smiles = {num_smiles}
 unique_molecules = {str(unique_molecules).lower()}
@@ -87,7 +88,12 @@ randomize_smiles = {str(randomize_smiles).lower()}
         # Check if REINVENT ran successfully
         if result.returncode == 0:
             print(f"[DEBUG] Results file created at: {result_path}")
-            return {"task_id": task_id, "status": "completed", "output_file": result_path}
+            return {
+                "task_id": task_id,
+                "status": "completed",
+                "output_file": result_path,
+                "json_output": json_out_path,  # ✅ Returning JSON output path
+            }
         else:
             print(f"[ERROR] REINVENT Failed: {result.stderr}")
             return {"task_id": task_id, "status": "failed", "error": result.stderr}

@@ -60,7 +60,7 @@ async def submit_molecule_design(
 async def get_molecule_result(task_id: str, job_service: JobService = Depends(get_job_service)):
     """ Retrieves the result of a molecule design task if available. """
 
-    result_path = f"./reinvent/results/{task_id}.csv"
+    result_path = f"./reinvent/tasks/{task_id}/results.csv"
 
     if not os.path.exists(result_path):
         raise HTTPException(status_code=404, detail="Result not found")
