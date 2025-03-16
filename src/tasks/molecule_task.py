@@ -63,13 +63,23 @@ randomize_smiles = {str(randomize_smiles).lower()}
     except Exception as e:
         print(f"[ERROR] Failed to write TOML file: {e}")
         return {"task_id": task_id, "status": "error", "error": str(e)}
+    try:
+        result11 = subprocess.run(
+            ["docker", "ps", "--filter", "name=centella-reinvent-backend-reinvent", "--format", "{{.Names}}"],
+            capture_output=True,
+            text=True
+        )
+        reinvent_container = result11.stdout.strip()
 
-    # 🔍 Find running REINVENT container dynamically
-    reinvent_container = "6d70f1227f4b"
+        if not reinvent_container:
+            print("[ERROR] REINVENT container is not running.")
+            return {"task_id": task_id, "status": "error", "error": "REINVENT container not running"}
 
-    if not reinvent_container:
-        print("[ERROR] REINVENT container is not running.")
-        return {"task_id": task_id, "status": "error", "error": "REINVENT container not running"}
+        print(f"[DEBUG] Using REINVENT container: {reinvent_container}")
+
+    except Exception as e:
+        print(f"[ERROR] Failed to find REINVENT container: {e}")
+        return {"task_id": task_id, "status": "error", "error": "Failed to get REINVENT container"}
 
     # Run REINVENT inside the running container
     try:
