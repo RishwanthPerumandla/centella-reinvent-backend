@@ -17,7 +17,7 @@ celery_app.conf.update(
 def run_molecule_design(task_data: dict):
     """Runs the molecule design pipeline using REINVENT inside a managed folder"""
 
-    task_id = task_data.get("task_id", f"task_{uuid.uuid4().hex()}")
+    task_id = task_data.get("task_id", f"task_{uuid.uuid4().hex}")
     device = task_data.get("device", "cpu")
     model_file = task_data.get("model_file", "priors/reinvent.prior")
     num_smiles = task_data.get("num_smiles", 157)
@@ -27,13 +27,13 @@ def run_molecule_design(task_data: dict):
     print(f"[DEBUG] Task ID: {task_id}")
 
     # Define task-specific folder
-    task_folder = f"reinvent/tasks/{task_id}"
+    task_folder = f"/app/reinvent/tasks/{task_id}"
     os.makedirs(task_folder, exist_ok=True)
 
     # Define paths inside the task-specific folder
     reinvent_config_path = f"{task_folder}/config.toml"
     log_path = f"{task_folder}/reinvent.log"
-    result_path = f"{task_folder}/sampling.json"
+    result_path = f"/app/reinvent/results/{task_id}.csv"
 
     print(f"[DEBUG] Writing config file to: {reinvent_config_path}")
 
@@ -64,11 +64,7 @@ randomize_smiles = {str(randomize_smiles).lower()}
         return {"task_id": task_id, "status": "error", "error": str(e)}
 
     # 🔍 Find running REINVENT container dynamically
-    reinvent_container = subprocess.run(
-        ["docker", "ps", "--filter", "name=reinvent", "--format", "{{.Names}}"],
-        capture_output=True,
-        text=True
-    ).stdout.strip()
+    reinvent_container = "6d70f1227f4b"
 
     if not reinvent_container:
         print("[ERROR] REINVENT container is not running.")

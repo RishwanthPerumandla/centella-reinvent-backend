@@ -26,7 +26,7 @@ services:
       - .env
     volumes:
       - ./src:/app/src  # Sync FastAPI backend code
-      - ./reinvent/results:/app/reinvent/results  # Share results folder
+      - ./reinvent:/app/reinvent  # ✅ Ensure Celery can write configs/results
     depends_on:
       db:
         condition: service_healthy
@@ -64,4 +64,6 @@ services:
       dockerfile: Dockerfile.reinvent
     volumes:
       - ./reinvent:/app/reinvent  # Share REINVENT folder
+      - ./reinvent/tasks:/app/reinvent/tasks  
+
     command: sleep infinity  # ✅ Keep container running to inspect files
