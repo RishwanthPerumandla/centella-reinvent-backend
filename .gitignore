@@ -51,3 +51,4 @@ logs/
 *.out
 *.pid
 nohup.out
+**/__pycache__/
