@@ -23,7 +23,7 @@ def run_transfer_learning_task(project_id: str):
     model_path = project_path / "models"
     config_path = project_path / "config.toml"
 
-    model_in = "priors/reinvent.prior"
+    model_in = "reinvent/priors/reinvent.prior"
     model_out = model_path / "agent.pt"
     train_file = input_path / "train.csv"
 
@@ -37,13 +37,13 @@ run_type = "transfer_learning"
 device = "cpu"
 
 [parameters]
-model_file = "{model_in}"
-input_smiles_path = "{train_file}"
-output_model_path = "{model_out}"
+input_model_file = "{model_in}"
+output_model_file = "{model_out}"
+smiles_file = "{train_file}"
 num_epochs = 10
 batch_size = 128
-max_steps = 1000
 """
+
 
     try:
         with open(config_path, "w") as f:
