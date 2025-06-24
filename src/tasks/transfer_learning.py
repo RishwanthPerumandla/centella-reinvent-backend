@@ -1,10 +1,23 @@
+from celery import Celery
 import subprocess
 import os
 from pathlib import Path
 
+# Setup Celery
+celery_app = Celery(
+    "transfer_learning",
+    broker="redis://redis:6379/0",
+    backend="redis://redis:6379/0"
+)
+celery_app.conf.update(
+    task_routes={"src.tasks.transfer_learning.run_transfer_learning_task": {"queue": "tl"}}
+)
 PROJECT_ROOT = Path(os.environ.get("PROJECT_DIR", "/app/projects"))
 
+@celery_app.task(name="src.tasks.transfer_learning.run_transfer_learning_task")
 def run_transfer_learning_task(project_id: str):
+    print(f"[TASK STARTED] Training project {project_id}")
+
     project_path = PROJECT_ROOT / project_id
     input_path = project_path / "input"
     model_path = project_path / "models"
@@ -42,10 +55,18 @@ max_steps = 1000
 
     # Run REINVENT
     try:
-        subprocess.run([
+        result = subprocess.run([
             "reinvent",
             "-l", str(project_path / "train.log"),
             str(config_path)
-        ], check=True)
-    except subprocess.CalledProcessError as e:
+        ], capture_output=True, text=True)
+
+        print("[STDOUT]", result.stdout)
+        print("[STDERR]", result.stderr)
+
+        if result.returncode != 0:
+            raise RuntimeError(f"REINVENT failed: {result.stderr}")
+
+    except Exception as e:
         print(f"[ERROR] REINVENT training failed: {e}")
+        raise

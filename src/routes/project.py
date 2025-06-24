@@ -5,7 +5,7 @@ import os
 import uuid
 from pathlib import Path
 from src.services.project_service import create_project_dir, save_smiles_file
-from src.tasks.run_transfer_learning import run_transfer_learning_task
+from src.tasks.transfer_learning import run_transfer_learning_task
 from src.tasks.run_reinforcement_learning import run_reinforcement_learning_task
 from src.tasks.run_generation import run_sampling_from_agent
 
@@ -32,12 +32,12 @@ def upload_smiles_file(project_id: str, file: UploadFile = File(...)):
     return {"project_id": project_id, "message": "SMILES file uploaded."}
 
 @router.post("/{project_id}/train")
-def train_model(project_id: str, background_tasks: BackgroundTasks):
+async def train_model(project_id: str):
     try:
-        background_tasks.add_task(run_transfer_learning_task, project_id)
+        run_transfer_learning_task.delay(project_id)  # ✅ send to Celery
+        return {"project_id": project_id, "status": "training_queued"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Training failed: {str(e)}")
-    return {"project_id": project_id, "status": "training_started"}
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{project_id}/reinforce")
 def reinforce_model(project_id: str, background_tasks: BackgroundTasks):

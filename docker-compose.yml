@@ -46,9 +46,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.celery
+    image: reinvent:latest
     env_file:
       - .env
-    command: ["celery", "-A", "src.tasks.molecule_task", "worker", "--loglevel=debug", "--queues=molecule"]
+    command: ["celery", "-A", "src.tasks.celery_worker", "worker", "--loglevel=debug", "--queues=molecule,tl"]
     privileged: true  # ✅ Allows Celery worker to run Docker commands
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
