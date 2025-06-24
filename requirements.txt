@@ -5,3 +5,6 @@ psycopg2-binary
 pydantic-settings
 celery
 redis
+pandas
+rdkit
+python-multipart

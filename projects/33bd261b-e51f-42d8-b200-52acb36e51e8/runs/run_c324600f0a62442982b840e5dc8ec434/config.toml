@@ -1,0 +1,11 @@
+
+run_type = "sampling"
+device = "cpu"
+json_out_config = "/app/projects/33bd261b-e51f-42d8-b200-52acb36e51e8/runs/run_c324600f0a62442982b840e5dc8ec434/sampling.json"
+
+[parameters]
+model_file = "/app/projects/33bd261b-e51f-42d8-b200-52acb36e51e8/models/agent.pt"
+output_file = "/app/projects/33bd261b-e51f-42d8-b200-52acb36e51e8/runs/run_c324600f0a62442982b840e5dc8ec434/raw_results.csv"
+num_smiles = 128
+unique_molecules = true
+randomize_smiles = true
