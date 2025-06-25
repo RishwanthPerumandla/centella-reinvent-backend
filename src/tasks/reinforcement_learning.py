@@ -30,11 +30,13 @@ def run_reinforcement_learning_task(project_id: str):
     json_output = run_path / "sampling.json"
     config_path = run_path / "config.toml"
     log_path = run_path / "reinforce.log"
+    tb_logdir = run_path / "tb"
+    stage1_checkpoint = run_path / "stage1.chkpt"
 
     toml_content = f"""
 run_type = "staged_learning"
 device = "cpu"
-tb_logdir = "{run_path}/tb"
+tb_logdir = "{tb_logdir}"
 json_out_config = "{json_output}"
 
 [parameters]
@@ -42,7 +44,7 @@ prior_file = "{prior_model}"
 agent_file = "{agent_model}"
 summary_csv_prefix = "stage1"
 batch_size = 64
-use_checkpoint = false
+use_checkpoint = true
 
 [learning_strategy]
 type = "dap"
@@ -52,7 +54,7 @@ rate = 0.0001
 [[stage]]
 max_score = 1.0
 max_steps = 300
-chkpt_file = "stage1.chkpt"
+chkpt_file = "{stage1_checkpoint}"
 scoring_function.type = "custom_product"
 
 [stage.scoring]
