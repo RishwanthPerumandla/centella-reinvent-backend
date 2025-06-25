@@ -1,0 +1,10 @@
+
+run_type = "transfer_learning"
+device = "cpu"
+
+[parameters]
+input_model_file = "reinvent/priors/reinvent.prior"
+output_model_file = "/app/projects/4100f125-40fa-4e79-b351-1b7db373721f/models/agent.pt"
+smiles_file = "/app/projects/4100f125-40fa-4e79-b351-1b7db373721f/input/train.csv"
+num_epochs = 10
+batch_size = 128

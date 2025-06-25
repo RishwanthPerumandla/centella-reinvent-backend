@@ -33,6 +33,9 @@ def run_reinforcement_learning_task(project_id: str):
     tb_logdir = run_path / "tb"
     stage1_checkpoint = run_path / "stage1.chkpt"
 
+    # Support stage continuation
+    stage2_checkpoint = run_path / "stage2.chkpt"
+
     toml_content = f"""
 run_type = "staged_learning"
 device = "cpu"
@@ -91,6 +94,27 @@ weight = 0.4
 
 transform.type = "left_step"
 transform.low = 0
+
+[[stage]]
+max_score = 1.0
+max_steps = 500
+chkpt_file = "{stage2_checkpoint}"
+scoring_function.type = "custom_product"
+
+[stage.scoring]
+type = "geometric_mean"
+
+[[stage.scoring.component]]
+[stage.scoring.component.QED]
+[[stage.scoring.component.QED.endpoint]]
+name = "QED"
+weight = 0.7
+
+[[stage.scoring.component]]
+[stage.scoring.component.NumAtomStereoCenters]
+[[stage.scoring.component.NumAtomStereoCenters.endpoint]]
+name = "Stereo"
+weight = 0.3
 """
 
     try:
