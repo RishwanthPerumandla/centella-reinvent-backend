@@ -1,13 +1,14 @@
 #  routes/project.py
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Query
 from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
 import os
 import uuid
 from pathlib import Path
 from src.services.project_service import create_project_dir, save_smiles_file
 from src.tasks.transfer_learning import run_transfer_learning_task
-from src.tasks.run_reinforcement_learning import run_reinforcement_learning_task
-from src.tasks.run_generation import run_sampling_from_agent
+from src.tasks.reinforcement_learning import run_reinforcement_learning_task
+from src.tasks.generation import run_sampling_from_agent
 
 router = APIRouter()
 PROJECT_ROOT = Path("/app/projects")
@@ -40,20 +41,24 @@ async def train_model(project_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{project_id}/reinforce")
-def reinforce_model(project_id: str, background_tasks: BackgroundTasks):
+def reinforce_model(project_id: str):
     try:
-        background_tasks.add_task(run_reinforcement_learning_task, project_id)
+        run_reinforcement_learning_task.delay(project_id)  # ✅ Use Celery queue
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Reinforcement learning failed: {str(e)}")
-    return {"project_id": project_id, "status": "reinforcement_started"}
+    return {"project_id": project_id, "status": "reinforcement_queued"}
+
+
 
 @router.post("/{project_id}/generate")
-def generate_molecules(project_id: str, background_tasks: BackgroundTasks):
+def generate_molecules(project_id: str):
     try:
-        background_tasks.add_task(run_sampling_from_agent, project_id)
+        run_sampling_from_agent.delay(project_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
-    return {"project_id": project_id, "status": "generation_started"}
+    return {"project_id": project_id, "status": "generation_queued"}
+
+
 
 @router.get("/{project_id}/results")
 def get_project_results(
@@ -64,7 +69,17 @@ def get_project_results(
     min_weight: float = Query(0.0),
     max_weight: float = Query(2000.0),
     min_logp: float = Query(-10.0),
-    max_logp: float = Query(10.0)
+    max_logp: float = Query(10.0),
+    min_tpsa: float = Query(0.0),
+    max_tpsa: float = Query(300.0),
+    min_rotatable: int = Query(0),
+    max_rotatable: int = Query(20),
+    min_donors: int = Query(0),
+    max_donors: int = Query(10),
+    min_acceptors: int = Query(0),
+    max_acceptors: int = Query(10),
+    output_format: str = Query("csv", enum=["csv", "json"]),
+    preview: bool = Query(False)
 ):
     import pandas as pd
 
@@ -74,16 +89,32 @@ def get_project_results(
 
     try:
         df = pd.read_csv(result_path)
+
+        # Apply all filters
         if "QED" in df.columns:
             df = df[(df["QED"] >= min_qed) & (df["QED"] <= max_qed)]
         if "MolecularWeight" in df.columns:
             df = df[(df["MolecularWeight"] >= min_weight) & (df["MolecularWeight"] <= max_weight)]
         if "SlogP" in df.columns:
             df = df[(df["SlogP"] >= min_logp) & (df["SlogP"] <= max_logp)]
+        if "TPSA" in df.columns:
+            df = df[(df["TPSA"] >= min_tpsa) & (df["TPSA"] <= max_tpsa)]
+        if "NumRotatableBonds" in df.columns:
+            df = df[(df["NumRotatableBonds"] >= min_rotatable) & (df["NumRotatableBonds"] <= max_rotatable)]
+        if "NumHDonors" in df.columns:
+            df = df[(df["NumHDonors"] >= min_donors) & (df["NumHDonors"] <= max_donors)]
+        if "NumHAcceptors" in df.columns:
+            df = df[(df["NumHAcceptors"] >= min_acceptors) & (df["NumHAcceptors"] <= max_acceptors)]
 
-        filtered_path = result_path.parent / f"filtered_{min_qed}_{max_qed}_{min_weight}_{max_weight}_{min_logp}_{max_logp}.csv"
+        if preview:
+            return JSONResponse(content=df.head(10).to_dict(orient="records"))
+
+        if output_format == "json":
+            return JSONResponse(content=df.to_dict(orient="records"))
+
+        filtered_path = result_path.parent / f"filtered_results.csv"
         df.to_csv(filtered_path, index=False)
+        return FileResponse(filtered_path, media_type="text/csv", filename=filtered_path.name)
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error filtering results: {str(e)}")
-
-    return FileResponse(filtered_path, media_type="text/csv", filename=filtered_path.name)

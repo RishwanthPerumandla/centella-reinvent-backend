@@ -11,4 +11,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ /app/src/
 
 # Set the entrypoint for Celery
-CMD ["celery", "-A", "src.tasks.celery_worker", "worker", "--loglevel=debug", "--queues=molecule,tl"]
+CMD ["celery", "-A", "src.tasks.celery_worker", "worker", "--loglevel=debug", "--queues=molecule,tl,rl,generation"]

@@ -41,6 +41,7 @@ CELERY_BACKEND=redis://redis:6379/0
 ## **2. Running the Application**
 ### **2.1 Start Docker Services**
 ```sh
+ docker build -f Dockerfile.reinvent -t reinvent:latest .
 docker-compose up --build -d
 ```
 This will:

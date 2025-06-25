@@ -8,8 +8,7 @@ celery_app = Celery(
 
 celery_app.autodiscover_tasks([
     "src.tasks.molecule_task",
-    "src.tasks.transfer_learning"
+    "src.tasks.transfer_learning",
+    "src.tasks.reinforcement_learning",
+    "src.tasks.generation"
 ])
-
-# 🔥 Force import to trigger registration
-# import src.tasks.transfer_learning
