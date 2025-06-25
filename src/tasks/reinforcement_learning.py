@@ -32,16 +32,63 @@ def run_reinforcement_learning_task(project_id: str):
     log_path = run_path / "reinforce.log"
 
     toml_content = f"""
-run_type = "sampling"
+run_type = "staged_learning"
 device = "cpu"
+tb_logdir = "{run_path}/tb"
 json_out_config = "{json_output}"
 
 [parameters]
-model_file = "{agent_model}"
-output_file = "{output_csv}"
-num_smiles = 256
-unique_molecules = true
-randomize_smiles = true
+prior_file = "{prior_model}"
+agent_file = "{agent_model}"
+summary_csv_prefix = "stage1"
+batch_size = 64
+use_checkpoint = false
+
+[learning_strategy]
+type = "dap"
+sigma = 128.0
+rate = 0.0001
+
+[[stage]]
+max_score = 1.0
+max_steps = 300
+chkpt_file = "stage1.chkpt"
+scoring_function.type = "custom_product"
+
+[stage.scoring]
+type = "geometric_mean"
+
+[[stage.scoring.component]]
+[stage.scoring.component.custom_alerts]
+
+[[stage.scoring.component.custom_alerts.endpoint]]
+name = "Alerts"
+params.smarts = [
+    "[*;r8]", "[*;r9]", "[*;r10]", "[*;r11]", "[*;r12]", "[*;r13]",
+    "[*;r14]", "[*;r15]", "[*;r16]", "[*;r17]", "[#8][#8]", "[#6;+]",
+    "[#16][#16]", "[#7;!n][S;!$(S(=O)=O)]", "[#7;!n][#7;!n]", "C#C",
+    "C(=[O,S])[O,S]", "[#7;!n][C;!$(C(=[O,N])[N,O])][#16;!s]",
+    "[#7;!n][C;!$(C(=[O,N])[N,O])][#7;!n]",
+    "[#7;!n][C;!$(C(=[O,N])[N,O])][#8;!o]",
+    "[#8;!o][C;!$(C(=[O,N])[N,O])][#16;!s]",
+    "[#8;!o][C;!$(C(=[O,N])[N,O])][#8;!o]",
+    "[#16;!s][C;!$(C(=[O,N])[N,O])][#16;!s]"
+]
+
+[[stage.scoring.component]]
+[stage.scoring.component.QED]
+[[stage.scoring.component.QED.endpoint]]
+name = "QED"
+weight = 0.6
+
+[[stage.scoring.component]]
+[stage.scoring.component.NumAtomStereoCenters]
+[[stage.scoring.component.NumAtomStereoCenters.endpoint]]
+name = "Stereo"
+weight = 0.4
+
+transform.type = "left_step"
+transform.low = 0
 """
 
     try:
