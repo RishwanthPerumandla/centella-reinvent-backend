@@ -18,6 +18,7 @@ celery_app.conf.update(
 )
 
 PROJECT_ROOT = Path(os.environ.get("PROJECT_DIR", "/app/projects"))
+DEVICE = os.environ.get("DEVICE", "cpu")  # <-- Dynamic device toggle
 
 def compute_descriptors(smiles_list):
     results = []
@@ -55,7 +56,7 @@ def run_sampling_from_agent(project_id: str):
 
     toml_content = f"""
 run_type = "sampling"
-device = "cpu"
+device = "{DEVICE}"
 json_out_config = "{json_output}"
 
 [parameters]

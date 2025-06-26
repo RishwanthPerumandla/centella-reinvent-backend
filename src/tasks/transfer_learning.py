@@ -13,6 +13,7 @@ celery_app.conf.update(
     task_routes={"src.tasks.transfer_learning.run_transfer_learning_task": {"queue": "tl"}}
 )
 PROJECT_ROOT = Path(os.environ.get("PROJECT_DIR", "/app/projects"))
+DEVICE = os.environ.get("DEVICE", "cpu")  # <-- Dynamic device toggle
 
 @celery_app.task(name="src.tasks.transfer_learning.run_transfer_learning_task")
 def run_transfer_learning_task(project_id: str):
@@ -34,7 +35,7 @@ def run_transfer_learning_task(project_id: str):
     # Build TOML content
     toml_content = f"""
 run_type = "transfer_learning"
-device = "cpu"
+device = "{DEVICE}"
 
 [parameters]
 input_model_file = "{model_in}"

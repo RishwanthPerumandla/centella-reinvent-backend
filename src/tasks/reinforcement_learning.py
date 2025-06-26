@@ -15,6 +15,7 @@ celery_app.conf.update(
 )
 
 PROJECT_ROOT = Path(os.environ.get("PROJECT_DIR", "/app/projects"))
+DEVICE = os.environ.get("DEVICE", "cpu")  # <-- Dynamic device toggle
 
 @celery_app.task(name="src.tasks.reinforcement_learning.run_reinforcement_learning_task")
 def run_reinforcement_learning_task(project_id: str):
@@ -38,7 +39,7 @@ def run_reinforcement_learning_task(project_id: str):
 
     toml_content = f"""
 run_type = "staged_learning"
-device = "cpu"
+device = "{DEVICE}"
 tb_logdir = "{tb_logdir}"
 json_out_config = "{json_output}"
 
