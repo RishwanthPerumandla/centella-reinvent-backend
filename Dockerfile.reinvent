@@ -1,20 +1,30 @@
-# Dockerfile.reinvent-base
-
+# syntax=docker/dockerfile:1.4
 FROM python:3.10-slim
 
-# System dependencies
+ARG DEVICE=cpu  # Set default to 'cpu'; pass `--build-arg DEVICE=cuda` for GPU
+
+# Install system packages
 RUN apt-get update && apt-get install -y \
     git build-essential libxrender1 libsm6 libxext6 wget && \
     rm -rf /var/lib/apt/lists/*
 
-# Clone and install REINVENT
-# RUN git clone https://github.com/MolecularAI/REINVENT4.git /app/reinvent
+# Copy REINVENT source code
 COPY reinvent /app/reinvent
-
-# Install REINVENT
 WORKDIR /app/reinvent
-RUN python install.py cpu && \
-    pip install --no-deps .
 
-# Ensure CLI is symlinked
+# Install REINVENT for CPU or GPU
+RUN if [ "$DEVICE" = "cuda" ]; then \
+        echo "[INFO] Installing REINVENT for GPU" && \
+        python install.py cuda && \
+        pip install --no-deps . ; \
+    else \
+        echo "[INFO] Installing REINVENT for CPU" && \
+        python install.py cpu && \
+        pip install --no-deps . ; \
+    fi
+
+# Symlink CLI for easy execution
 RUN ln -sf /usr/local/bin/reinvent /usr/bin/reinvent
+
+# docker build -f Dockerfile.reinvent-base -t reinvent-base .
+# docker build --build-arg DEVICE=cuda -f Dockerfile.reinvent-base -t reinvent-base .
