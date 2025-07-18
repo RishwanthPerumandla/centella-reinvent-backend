@@ -6,6 +6,8 @@ import uuid
 import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import Descriptors, QED
+from src.db.connection import SessionLocal
+from src.db.models import Job
 
 # Setup Celery
 celery_app = Celery(
@@ -18,7 +20,7 @@ celery_app.conf.update(
 )
 
 PROJECT_ROOT = Path(os.environ.get("PROJECT_DIR", "/app/projects"))
-DEVICE = os.environ.get("DEVICE", "cpu")  # <-- Dynamic device toggle
+DEVICE = os.environ.get("DEVICE", "cpu")
 
 def compute_descriptors(smiles_list):
     results = []
@@ -40,8 +42,8 @@ def compute_descriptors(smiles_list):
                 continue
     return pd.DataFrame(results)
 
-@celery_app.task(name="src.tasks.generation.run_sampling_from_agent")
-def run_sampling_from_agent(project_id: str):
+@celery_app.task(name="src.tasks.generation.run_sampling_from_agent", bind=True)
+def run_sampling_from_agent(self,project_id: str):
     print(f"[TASK STARTED] Generating molecules for project {project_id}")
 
     run_id = f"run_{uuid.uuid4().hex}"
@@ -74,6 +76,18 @@ randomize_smiles = true
     except Exception as e:
         print(f"[ERROR] Failed to write TOML: {e}")
         return
+
+    # Log job to database
+    try:
+        db = SessionLocal()
+        task_id = self.request.id  # ✅ correct way
+
+        job = Job(task_id=task_id, project_id=project_id, run_id=run_id, job_type="generate")
+        db.add(job)
+        db.commit()
+        db.close()
+    except Exception as e:
+        print(f"[ERROR] Failed to log job to DB: {e}")
 
     try:
         result = subprocess.run([

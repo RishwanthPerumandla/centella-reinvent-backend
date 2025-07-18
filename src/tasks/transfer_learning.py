@@ -2,6 +2,9 @@ from celery import Celery
 import subprocess
 import os
 from pathlib import Path
+import uuid
+from src.db.connection import SessionLocal
+from src.db.models import Job
 
 # Setup Celery
 celery_app = Celery(
@@ -12,11 +15,12 @@ celery_app = Celery(
 celery_app.conf.update(
     task_routes={"src.tasks.transfer_learning.run_transfer_learning_task": {"queue": "tl"}}
 )
+
 PROJECT_ROOT = Path(os.environ.get("PROJECT_DIR", "/app/projects"))
 DEVICE = os.environ.get("DEVICE", "cpu")  # <-- Dynamic device toggle
 
-@celery_app.task(name="src.tasks.transfer_learning.run_transfer_learning_task")
-def run_transfer_learning_task(project_id: str):
+@celery_app.task(name="src.tasks.transfer_learning.run_transfer_learning_task",bind=True)
+def run_transfer_learning_task(self,project_id: str):
     print(f"[TASK STARTED] Training project {project_id}")
 
     project_path = PROJECT_ROOT / project_id
@@ -45,7 +49,6 @@ num_epochs = 10
 batch_size = 128
 """
 
-
     try:
         with open(config_path, "w") as f:
             f.write(toml_content)
@@ -53,6 +56,20 @@ batch_size = 128
     except Exception as e:
         print(f"[ERROR] Failed to write TOML: {e}")
         return
+
+    # Log job to database
+    try:
+        db = SessionLocal()
+        task_id = self.request.id  # ✅ correct way
+
+        job = Job(task_id=task_id, project_id=project_id, run_id="N/A", job_type="train", status="queued")
+        db.add(job)
+        db.commit()
+        db.close()
+        print(f"[INFO] Job logged to DB with task_id: {task_id}")
+
+    except Exception as e:
+        print(f"[ERROR] Failed to log job to DB: {e}")
 
     # Run REINVENT
     try:

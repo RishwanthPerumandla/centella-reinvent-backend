@@ -9,6 +9,9 @@ from src.services.project_service import create_project_dir, save_smiles_file
 from src.tasks.transfer_learning import run_transfer_learning_task
 from src.tasks.reinforcement_learning import run_reinforcement_learning_task
 from src.tasks.generation import run_sampling_from_agent
+from src.db.connection import SessionLocal
+from src.db.models import Job
+from typing import List
 
 router = APIRouter()
 PROJECT_ROOT = Path("/app/projects")
@@ -58,6 +61,24 @@ def generate_molecules(project_id: str):
         raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
     return {"project_id": project_id, "status": "generation_queued"}
 
+
+@router.get("/{project_id}/runs")
+def list_project_runs(project_id: str):
+    db = SessionLocal()
+    try:
+        jobs = db.query(Job).filter(Job.project_id == project_id).order_by(Job.created_at.desc()).all()
+        return [
+            {
+                "task_id": job.task_id,
+                "run_id": job.run_id,
+                "job_type": job.job_type,
+                "status": job.status,
+                "created_at": job.created_at.isoformat()
+            }
+            for job in jobs
+        ]
+    finally:
+        db.close()
 
 
 @router.get("/{project_id}/results")

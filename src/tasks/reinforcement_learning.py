@@ -3,6 +3,8 @@ import subprocess
 import os
 from pathlib import Path
 import uuid
+from src.db.connection import SessionLocal
+from src.db.models import Job
 
 # Setup Celery
 celery_app = Celery(
@@ -15,10 +17,9 @@ celery_app.conf.update(
 )
 
 PROJECT_ROOT = Path(os.environ.get("PROJECT_DIR", "/app/projects"))
-DEVICE = os.environ.get("DEVICE", "cpu")  # <-- Dynamic device toggle
 
-@celery_app.task(name="src.tasks.reinforcement_learning.run_reinforcement_learning_task")
-def run_reinforcement_learning_task(project_id: str):
+@celery_app.task(name="src.tasks.reinforcement_learning.run_reinforcement_learning_task", bind=True)
+def run_reinforcement_learning_task(self, project_id: str):
     print(f"[TASK STARTED] Reinforcing project {project_id}")
 
     run_id = f"run_{uuid.uuid4().hex}"
@@ -31,91 +32,18 @@ def run_reinforcement_learning_task(project_id: str):
     json_output = run_path / "sampling.json"
     config_path = run_path / "config.toml"
     log_path = run_path / "reinforce.log"
-    tb_logdir = run_path / "tb"
-    stage1_checkpoint = run_path / "stage1.chkpt"
-
-    # Support stage continuation
-    stage2_checkpoint = run_path / "stage2.chkpt"
 
     toml_content = f"""
-run_type = "staged_learning"
-device = "{DEVICE}"
-tb_logdir = "{tb_logdir}"
+run_type = "sampling"
+device = "cpu"
 json_out_config = "{json_output}"
 
 [parameters]
-prior_file = "{prior_model}"
-agent_file = "{agent_model}"
-summary_csv_prefix = "stage1"
-batch_size = 64
-use_checkpoint = true
-
-[learning_strategy]
-type = "dap"
-sigma = 128.0
-rate = 0.0001
-
-[[stage]]
-max_score = 1.0
-max_steps = 300
-chkpt_file = "{stage1_checkpoint}"
-scoring_function.type = "custom_product"
-
-[stage.scoring]
-type = "geometric_mean"
-
-[[stage.scoring.component]]
-[stage.scoring.component.custom_alerts]
-
-[[stage.scoring.component.custom_alerts.endpoint]]
-name = "Alerts"
-params.smarts = [
-    "[*;r8]", "[*;r9]", "[*;r10]", "[*;r11]", "[*;r12]", "[*;r13]",
-    "[*;r14]", "[*;r15]", "[*;r16]", "[*;r17]", "[#8][#8]", "[#6;+]",
-    "[#16][#16]", "[#7;!n][S;!$(S(=O)=O)]", "[#7;!n][#7;!n]", "C#C",
-    "C(=[O,S])[O,S]", "[#7;!n][C;!$(C(=[O,N])[N,O])][#16;!s]",
-    "[#7;!n][C;!$(C(=[O,N])[N,O])][#7;!n]",
-    "[#7;!n][C;!$(C(=[O,N])[N,O])][#8;!o]",
-    "[#8;!o][C;!$(C(=[O,N])[N,O])][#16;!s]",
-    "[#8;!o][C;!$(C(=[O,N])[N,O])][#8;!o]",
-    "[#16;!s][C;!$(C(=[O,N])[N,O])][#16;!s]"
-]
-
-[[stage.scoring.component]]
-[stage.scoring.component.QED]
-[[stage.scoring.component.QED.endpoint]]
-name = "QED"
-weight = 0.6
-
-[[stage.scoring.component]]
-[stage.scoring.component.NumAtomStereoCenters]
-[[stage.scoring.component.NumAtomStereoCenters.endpoint]]
-name = "Stereo"
-weight = 0.4
-
-transform.type = "left_step"
-transform.low = 0
-
-[[stage]]
-max_score = 1.0
-max_steps = 500
-chkpt_file = "{stage2_checkpoint}"
-scoring_function.type = "custom_product"
-
-[stage.scoring]
-type = "geometric_mean"
-
-[[stage.scoring.component]]
-[stage.scoring.component.QED]
-[[stage.scoring.component.QED.endpoint]]
-name = "QED"
-weight = 0.7
-
-[[stage.scoring.component]]
-[stage.scoring.component.NumAtomStereoCenters]
-[[stage.scoring.component.NumAtomStereoCenters.endpoint]]
-name = "Stereo"
-weight = 0.3
+model_file = "{agent_model}"
+output_file = "{output_csv}"
+num_smiles = 256
+unique_molecules = true
+randomize_smiles = true
 """
 
     try:
@@ -125,6 +53,17 @@ weight = 0.3
     except Exception as e:
         print(f"[ERROR] Failed to write TOML: {e}")
         return
+
+    # Log job to database
+    try:
+        db = SessionLocal()
+        task_id = self.request.id  # ✅ correct way
+        job = Job(task_id=task_id, project_id=project_id, run_id=run_id, job_type="reinforce")
+        db.add(job)
+        db.commit()
+        db.close()
+    except Exception as e:
+        print(f"[ERROR] Failed to log job to DB: {e}")
 
     try:
         result = subprocess.run([

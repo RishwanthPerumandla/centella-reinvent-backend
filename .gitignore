@@ -52,3 +52,5 @@ logs/
 *.pid
 nohup.out
 **/__pycache__/
+
+/projects/
