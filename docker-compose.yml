@@ -20,16 +20,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    command: >
+        sh -lc "python src/db/init_db.py &&
+                uvicorn src.main:app --reload --host 0.0.0.0 --port 8000 --reload-dir /app/src"
     ports:
       - "8000:8000"
     env_file:
       - .env
     environment:
-      - PROJECT_DIR=/app/projects   # ✅ Add this
+      - PYTHONPATH=/app
+      - PROJECT_DIR=/app/projects
     volumes:
       - ./src:/app/src
       - ./reinvent:/app/reinvent
-      - ./projects:/app/projects    # ✅ Make sure this line exists
+      - ./projects:/app/projects
     depends_on:
       db:
         condition: service_healthy

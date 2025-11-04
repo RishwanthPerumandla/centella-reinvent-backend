@@ -12,9 +12,44 @@ from src.tasks.generation import run_sampling_from_agent
 from src.db.connection import SessionLocal
 from src.db.models import Job
 from typing import List
+import re
+import pandas as pd
+from io import StringIO, BytesIO
+from src.utils.smiles_cleaner import clean_one
 
 router = APIRouter()
 PROJECT_ROOT = Path("/app/projects")
+def clean_smiles(s: str) -> str:
+    if not isinstance(s, str):
+        return s
+    s = s.strip()
+    if not s:
+        return s
+    s = s.replace("|", ".")
+    ions = [r"\[Na\+\]", r"\[K\+\]", r"\[Li\+\]", r"\[Ca\+\+\]", r"\[Mg\+\+\]",
+            r"\[Cl-\]", r"\[Br-\]", r"\[I-\]", r"\[H\+\]"]
+    s = re.sub(r"(\.|\|)?\s*(" + "|".join(ions) + r")\s*", "", s)
+    frags = [f for f in s.split(".") if f]
+    if len(frags) > 1:
+        frags = sorted(frags, key=lambda f: sum(t.isalpha() for t in f), reverse=True)
+    s = frags[0]
+    s = re.sub(r"[^A-Za-z0-9@\[\]\+\-\=\(\)\#\\/]", "", s)
+    return s.strip()
+
+
+def auto_clean_smiles_file(file: UploadFile) -> pd.DataFrame:
+    try:
+        contents = file.file.read().decode("utf-8")
+        df = pd.read_csv(StringIO(contents))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid CSV: {e}")
+
+    if "SMILES" not in df.columns:
+        raise HTTPException(status_code=400, detail="CSV must contain a 'SMILES' column.")
+
+    df["SMILES"] = df["SMILES"].astype(str).apply(clean_smiles)
+    return df
+
 
 @router.post("/")
 def create_project():
@@ -29,11 +64,30 @@ def create_project():
 def upload_smiles_file(project_id: str, file: UploadFile = File(...)):
     if file.content_type != "text/csv":
         raise HTTPException(status_code=400, detail="Only CSV files are supported.")
+    
     try:
-        save_smiles_file(project_id, file)
+        # Step 1: Clean SMILES
+        df_clean = auto_clean_smiles_file(file)
+
+        # Step 2: Convert cleaned DataFrame back to a file-like object
+        cleaned_csv = df_clean.to_csv(index=False)
+        cleaned_bytes = BytesIO(cleaned_csv.encode("utf-8"))
+
+        # Step 3: Recreate a new UploadFile-like object
+        cleaned_upload = UploadFile(
+            filename=file.filename.replace(".csv", "_cleaned.csv"),
+            file=cleaned_bytes        )
+
+        # Step 4: Use your existing save function
+        save_smiles_file(project_id, cleaned_upload)
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    return {"project_id": project_id, "message": "SMILES file uploaded."}
+        raise HTTPException(status_code=500, detail=f"Failed to process SMILES file: {e}")
+
+    return {
+        "project_id": project_id,
+        "message": "SMILES file cleaned and uploaded successfully."
+    }
 
 @router.post("/{project_id}/train")
 async def train_model(project_id: str):

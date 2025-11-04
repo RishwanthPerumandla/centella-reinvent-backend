@@ -8,3 +8,6 @@ redis
 pandas
 rdkit
 python-multipart
+rdkit-pypi
+uvicorn[standard]
+watchfiles

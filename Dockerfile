@@ -15,7 +15,6 @@ COPY src/ /app/src/
 EXPOSE 8000
 
 # Ensure environment variables are read inside the container
-ENV DATABASE_URL=${DATABASE_URL}
 ENV PYTHONPATH=/app
 
 # Run FastAPI
